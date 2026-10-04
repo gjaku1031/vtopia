@@ -1,0 +1,27 @@
+# 로컬 환경과 비밀값
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# JavaScript·Next.js 산출물
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+
+# Gradle·JVM·jOOQ 생성 산출물
+.gradle/
+.kotlin/
+build/
+*.class
+*.hprof
+
+# IDE·운영체제 임시 파일
+.idea/
+*.iml
+.DS_Store
+*.log

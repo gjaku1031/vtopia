@@ -1,0 +1,50 @@
+/* 문서 기본 색상과 글꼴 */
+:root {
+  color-scheme: light;
+  color: #17252a;
+  background: #f5f7f5;
+  font-family: Arial, "Noto Sans KR", sans-serif;
+}
+
+/* 요소 크기 계산과 페이지 여백 초기화 */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+/* 화면 너비에 따라 여백을 조정하는 안내 영역 */
+main {
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: clamp(2rem, 8vw, 7rem);
+}
+
+/* 브랜드 식별과 주요 안내문 */
+.eyebrow {
+  color: #386957;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+}
+
+h1 {
+  margin: 1rem 0;
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.06em;
+  word-break: keep-all;
+}
+
+.description {
+  color: #52635e;
+  font-size: 1.1rem;
+  line-height: 1.7;
+}

@@ -1,0 +1,24 @@
+# 개발용 DB만 기동하며 API·Web은 각 개발 서버에서 실행
+name: vtopia
+services:
+  postgres:
+    image: postgres:18.3
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vtopia}
+      POSTGRES_USER: ${POSTGRES_USER:-vtopia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vtopia_local}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # PostgreSQL 18의 버전별 데이터 디렉터리를 포함하는 상위 경로
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+# 개발 DB 데이터 보존용 볼륨
+volumes:
+  postgres_data:

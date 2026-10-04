@@ -1,0 +1,23 @@
+{
+  "name": "vtopia",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": ["apps/web"],
+  "engines": { "node": ">=24 <25", "npm": ">=11 <12" },
+  "packageManager": "npm@11.19.0",
+  "scripts": {
+    "dev": "npm run dev:web --",
+    "dev:web": "npm run dev --workspace=@vtopia/web --",
+    "dev:api": "cd apps/api && ./gradlew bootRun --args='--spring.profiles.active=local'",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose down",
+    "build": "npm run build:api && npm run build:web",
+    "build:api": "cd apps/api && ./gradlew bootJar",
+    "build:web": "npm run build --workspace=@vtopia/web",
+    "lint": "npm run lint --workspace=@vtopia/web",
+    "typecheck": "npm run typecheck --workspace=@vtopia/web",
+    "test:api": "cd apps/api && ./gradlew test",
+    "check": "npm run lint && npm run typecheck && npm run test:api",
+    "jooq:generate": "cd apps/api && ./gradlew jooqCodegen"
+  }
+}

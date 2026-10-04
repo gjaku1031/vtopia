@@ -1,0 +1,12 @@
+# apps/api에서 실행할 때 저장소 루트의 선택적 로컬 환경 파일 로드
+spring:
+  config:
+    import: optional:file:../../.env[.properties]
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/vtopia}
+    username: ${DB_USERNAME:vtopia}
+    password: ${DB_PASSWORD:vtopia_local}
+  jpa:
+    # 개발 DB에서만 엔티티 변경 자동 반영
+    hibernate:
+      ddl-auto: update
