@@ -73,7 +73,7 @@ npm run build
 
 `test:api`는 Docker에서 별도 PostgreSQL Testcontainer를 만들고 종료 시 정리한다. 개발 DB는 사용하지 않는다. JPA 저장→jOOQ 조회, 지연 프록시 변경 감지, JPA·jOOQ 공동 롤백을 검증한다.
 
-`build:api`는 실행 JAR을 생성하며 테스트는 별도다. CI에서는 `./gradlew clean build`로 API 테스트와 빌드를 함께 실행한다. 웹은 lint·타입 검사·프로덕션 빌드를 수행한다.
+`build:api`는 실행 JAR을 생성하며 테스트는 별도다. API 테스트와 빌드를 함께 실행하려면 `apps/api`에서 `./gradlew clean build`를 실행한다. 웹은 위 명령으로 lint·타입 검사·프로덕션 빌드를 수행한다.
 
 2026-10-04 기준 `npm audit --omit=dev`는 취약점 0건이다. 전체 감사에는 ESLint의 간접 의존성 `braces` 관련 high 5건이 표시된다. [공식 보안 공지](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)에 수정 버전이 없어 Next.js 린트 설정을 유지하고 추후 업데이트 대상으로 남긴다. ESLint 9는 현재 Next.js 설정의 React 플러그인 호환 범위에 맞췄다.
 
