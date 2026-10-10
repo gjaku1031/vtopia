@@ -1,12 +1,12 @@
 # Vtopia
 
-Next.js + Spring Boot(Kotlin) 모노레포. API의 코드·주석·영속성 구조는 [ken-blog](https://github.com/gjaku1031/ken-blog)를 기준으로 구성한다.
+Next.js + Spring Boot(Java) 모노레포. API의 코드·주석·영속성 구조는 [ken-blog](https://github.com/gjaku1031/ken-blog)를 기준으로 구성한다.
 
 ## 구성
 
 ```text
 apps/
-  api/                  Spring Boot · Kotlin · JPA · jOOQ
+  api/                  Spring Boot · Java · JPA · jOOQ
   web/                  Next.js App Router · React · TypeScript
 docs/
   convention/           코드·주석 작성 규칙
@@ -21,7 +21,7 @@ compose.yaml            로컬 PostgreSQL
 | Next.js / React | 16.3.8 / 19.3.0 |
 | TypeScript | 5.9.3 |
 | JDK / Gradle Wrapper | 25 / 9.3.0 |
-| Spring Boot / Kotlin | 4.1.1 / 2.3.21 |
+| Spring Boot / Java | 4.1.1 / 25 |
 | jOOQ / PostgreSQL | 3.21.8 / 18.3 |
 
 JDK 25, Node.js 24, Docker Engine 및 Compose v2가 필요하다. Gradle도 JDK 25로 실행해야 한다. Windows에서는 WSL을 사용한다.
@@ -101,7 +101,7 @@ API 산출물은 `apps/api/build/libs/vtopia-api.jar`, 웹 산출물은 `apps/we
 
 ## 컨벤션
 
-작업 전 [AGENTS.md](AGENTS.md), [코드 컨벤션](docs/convention/CODE.md), [주석 컨벤션](docs/convention/KDoc.md)을 확인한다. 엔티티의 명시적 `open`, `protected constructor()`, `protected set`, 한국어 여러 줄 KDoc 규칙을 적용한다.
+작업 전 [AGENTS.md](AGENTS.md), [코드 컨벤션](docs/convention/CODE.md), [주석 컨벤션](docs/convention/Javadoc.md)을 확인한다. 엔티티의 non-final 클래스·메서드, `protected` 기본 생성자, setter 없는 getter, 한국어 여러 줄 Javadoc 규칙을 적용한다.
 
 프런트엔드는 Server Component를 기본으로 사용하고 브라우저 상태·이벤트가 필요한 경계만 Client Component로 분리한다. `@/*`는 `apps/web/src/*`를 가리킨다. `package.json`은 npm workspace와 실행 명령, `tsconfig.json`은 strict 타입 검사와 경로 별칭을 관리한다. JSON에는 주석을 삽입하지 않는다.
 
