@@ -1,0 +1,190 @@
+import jakarta.persistence.Entity
+import org.hibernate.boot.MetadataSources
+import org.hibernate.boot.registry.BootstrapServiceRegistryBuilder
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder
+import org.hibernate.tool.schema.spi.DelayedDropRegistryNotAvailableImpl
+import org.hibernate.tool.schema.spi.SchemaManagementToolCoordinator
+
+// DDL 생성에 필요한 Hibernate를 빌드 클래스패스에 구성
+buildscript {
+    // 빌드용 의존성 저장소
+    repositories { mavenCentral() }
+    // 엔티티 메타데이터·DDL 생성 의존성
+    dependencies {
+        // 앱과 같은 Boot BOM으로 빌드용 Hibernate 버전도 맞춤
+        classpath platform('org.springframework.boot:spring-boot-dependencies:4.1.1')
+        classpath 'org.hibernate.orm:hibernate-core'
+    }
+}
+
+// Java·Spring Boot·jOOQ 빌드 플러그인
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.1'
+    id 'org.jooq.jooq-codegen-gradle' version '3.21.8'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+// 배포 좌표와 jOOQ 버전
+group = 'io.github.gjaku1031'
+version = '0.0.1-SNAPSHOT'
+ext['jooq.version'] = '3.21.8'
+
+// 애플리케이션 의존성 저장소
+repositories {
+    mavenCentral()
+}
+
+// JDK·바이트코드 버전
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+// API 실행 진입점
+springBoot {
+    mainClass = 'io.github.gjaku1031.vtopia.VtopiaApiApplication'
+}
+
+// API 런타임·통합 테스트·코드 생성 의존성
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-jooq'
+    runtimeOnly 'org.postgresql:postgresql'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:testcontainers-postgresql'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    jooqCodegen 'org.jooq:jooq-meta-extensions:3.21.8'
+}
+
+// 앱 컴파일은 jOOQ 타입에 의존하므로 JPA 모델만 먼저 별도 컴파일함
+// 원본 엔티티를 그대로 읽으며 이 소스셋의 클래스는 API JAR에 별도로 넣지 않음
+sourceSets {
+    jpaModel {
+        // 앱과 동일한 도메인 원본만 선행 컴파일
+        java {
+            srcDir 'src/main/java'
+            // 도메인 예외의 공통 부모만 추가하며 서비스·응답 변환기는 포함하지 않음
+            include '**/domain/**', '**/global/error/BusinessException.java'
+        }
+    }
+}
+def jpaModel = sourceSets.jpaModel
+// 빌드 전용 모델에서도 앱의 영속성 의존성 사용
+configurations[jpaModel.implementationConfigurationName].extendsFrom(configurations.implementation)
+
+// JPA에서 추출할 PostgreSQL DDL 출력 경로
+def jpaSchema = layout.buildDirectory.file('generated/jooq/schema.sql')
+// 엔티티 선행 컴파일 → DDL 생성 → 리소스 해제 순서의 태스크
+def generateJpaSchema = tasks.register('generateJpaSchema') {
+    group = 'jooq'
+    description = 'JPA 엔티티에서 jOOQ 코드 생성용 PostgreSQL DDL을 만든다. DB에는 접속하지 않는다.'
+    dependsOn jpaModel.classesTaskName
+    inputs.files(jpaModel.runtimeClasspath).withPropertyName('jpaModelClasspath')
+        .withNormalizer(ClasspathNormalizer)
+    outputs.file(jpaSchema)
+    doLast {
+        // 지난 DDL을 비우고 새 출력 경로 준비
+        def output = jpaSchema.get().asFile
+        output.parentFile.mkdirs()
+        output.delete()
+        // DB 접속 없이 PostgreSQL 생성 스크립트만 출력
+        Map<String, Object> settings = [
+            'hibernate.dialect'                                         : 'org.hibernate.dialect.PostgreSQLDialect',
+            'hibernate.boot.allow_jdbc_metadata_access'                 : false,
+            'hibernate.physical_naming_strategy'                        : 'org.hibernate.boot.model.naming.PhysicalNamingStrategySnakeCaseImpl',
+            'jakarta.persistence.schema-generation.database.action'     : 'none',
+            'jakarta.persistence.schema-generation.scripts.action'      : 'create',
+            'jakarta.persistence.schema-generation.scripts.create-target': output.absolutePath,
+            'hibernate.hbm2ddl.schema-generation.script.append'         : false,
+        ]
+        // 빌드 전용 클래스 로더에서 컴파일된 엔티티만 읽음 Spring 앱은 기동하지 않음
+        def urls = jpaModel.runtimeClasspath.collect { it.toURI().toURL() } as URL[]
+        new URLClassLoader(urls, Entity.class.getClassLoader()).withCloseable { loader ->
+            def bootstrap = new BootstrapServiceRegistryBuilder().applyClassLoader(loader).build()
+            def registry = new StandardServiceRegistryBuilder(bootstrap).applySettings(settings).build()
+            try {
+                def sources = new MetadataSources(registry)
+                // 컴파일된 클래스 중 JPA 엔티티만 이름순으로 수집
+                def entities = jpaModel.output.classesDirs.collectMany { directory ->
+                    fileTree(directory).matching { include '**/*.class' }.collect { file ->
+                        directory.toPath().relativize(file.toPath()).collect { it.toString() }.join('.')
+                            .replaceFirst(/\.class$/, '')
+                    }
+                }.sort().collect { loader.loadClass(it) }.findAll { it.isAnnotationPresent(Entity) }
+                if (entities.isEmpty()) {
+                    throw new IllegalStateException('jOOQ 스키마 생성에 사용할 JPA 엔티티가 없습니다.')
+                }
+                // 등록한 엔티티로 DDL 생성 후 빈 결과 검사
+                entities.each { sources.addAnnotatedClass(it) }
+                SchemaManagementToolCoordinator.process(sources.buildMetadata(), registry, settings,
+                    DelayedDropRegistryNotAvailableImpl.INSTANCE)
+                if (output.length() == 0) {
+                    throw new IllegalStateException('Hibernate가 스키마를 생성하지 않았습니다.')
+                }
+            } finally {
+                // 성공·실패 모두 Hibernate 레지스트리 해제
+                StandardServiceRegistryBuilder.destroy(registry)
+            }
+        }
+    }
+}
+
+// Hibernate가 빌드 중 생성한 DDL을 사용함 수동 스키마나 운영 DB 연결은 필요 없음
+jooq {
+    configuration {
+        generator {
+            name = 'org.jooq.codegen.JavaGenerator'
+            database {
+                name = 'org.jooq.meta.extensions.ddl.DDLDatabase'
+                properties {
+                    property { key = 'scripts'; value = jpaSchema.get().asFile.absolutePath }
+                    property { key = 'unqualifiedSchema'; value = 'none' }
+                    property { key = 'defaultNameCase'; value = 'lower' }
+                }
+            }
+            generate {
+                pojos = false
+                daos = false
+                // 조회는 명시적인 JOIN만 사용하며 자동 관계 경로를 생성하지 않음
+                implicitJoinPathsToOne = false
+                implicitJoinPathsToMany = false
+                implicitJoinPathsManyToMany = false
+            }
+            target {
+                packageName = 'io.github.gjaku1031.vtopia.jooq'
+                directory = 'build/generated-src/jooq/main'
+            }
+        }
+    }
+}
+
+// 생성된 jOOQ 소스를 앱 컴파일에 포함
+sourceSets.main.java.srcDir 'build/generated-src/jooq/main'
+// DDL 생성 완료 후 jOOQ 코드 생성
+tasks.named('jooqCodegen') {
+    dependsOn generateJpaSchema
+    inputs.file(jpaSchema)
+}
+// 앱 컴파일 전에 jOOQ 타입 생성 보장
+tasks.named('compileJava') { dependsOn 'jooqCodegen' }
+
+// JUnit Platform으로 테스트 실행
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+
+// 배포용 실행 JAR 이름 고정
+tasks.named('bootJar') {
+    archiveFileName = 'vtopia-api.jar'
+}
+
+// 실행 불가능한 일반 JAR 생성 비활성화
+tasks.named('jar') {
+    enabled = false
+}

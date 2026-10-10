@@ -15,7 +15,6 @@ npm-debug.log*
 
 # Gradle·JVM·jOOQ 생성 산출물
 .gradle/
-.kotlin/
 build/
 *.class
 *.hprof
