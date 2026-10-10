@@ -22,5 +22,10 @@ build/
 # IDE·운영체제 임시 파일
 .idea/
 *.iml
+.classpath
+.project
+.settings/
+.factorypath
+/apps/api/bin/
 .DS_Store
 *.log
