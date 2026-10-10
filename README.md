@@ -11,6 +11,7 @@ apps/
 docs/
   convention/           코드·주석 작성 규칙
   ADR/                  영속성 설계 결정
+  guide/                개발 도구 설정·사용법
 compose.yaml            로컬 PostgreSQL
 ```
 
@@ -49,6 +50,8 @@ npm run dev:web
 - 웹: <http://localhost:3000>
 - API 상태: <http://localhost:8080/actuator/health>
 - 웹을 통한 API 상태: <http://localhost:3000/api/health>
+
+개발 서버 화면에는 UI 주석 도구 Agentation 툴바가 표시된다. MCP 등록과 원격 VS Code 포트 포워딩은 [Agentation 가이드](docs/guide/agentation.md)를 참고한다.
 
 `dev:api`는 `local` 프로필을 지정한다. 이 프로필은 `apps/api`를 기준으로 루트 `.env`를 읽고 개발 DB에 `ddl-auto=update`를 적용한다. `.env` 없이도 예제 접속 정보로 실행할 수 있다. 다른 작업 디렉터리에서 API를 실행할 때는 환경변수를 직접 전달한다.
 

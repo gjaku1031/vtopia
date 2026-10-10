@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   output: "standalone",
 
   /**
+   * localhost 외 개발 자원 요청 허용 호스트. VS Code 포트 포워딩의 127.0.0.1 접속용, 운영 빌드에는 영향 없음
+   */
+  allowedDevOrigins: ["127.0.0.1"],
+
+  /**
    * 상태 점검은 Actuator로, 업무 API는 동일 경로로 전달
    */
   async rewrites() {
